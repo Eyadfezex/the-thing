@@ -6,7 +6,6 @@ import {
   JWT_REFRESH_EXPIRES_IN,
   JWT_SECRET,
 } from "../config/auth.config";
-import { ValidationError } from "../utils/validate";
 
 /**
  * Custom error class for handling authentication-related errors
@@ -38,10 +37,6 @@ export const registerUser = async (userData: {
 }) => {
   try {
     const { name, email, password } = userData;
-
-    if (!name?.trim() || !email?.trim() || !password?.trim()) {
-      throw new ValidationError("Username, email, and password are required");
-    }
 
     // Check if a user with the provided email or username already exists
     const existingUser = await prisma.user.findFirst({
@@ -97,10 +92,7 @@ export const registerUser = async (userData: {
 
     return { accessToken, refreshToken, user: safeUser };
   } catch (error: unknown) {
-    if (
-      error instanceof ValidationError ||
-      error instanceof AuthenticationError
-    ) {
+    if (error instanceof AuthenticationError) {
       throw error;
     }
     throw new Error(
@@ -128,11 +120,6 @@ export const signIn = async (credentials: {
 }) => {
   try {
     const { email, password } = credentials;
-
-    // Validate required fields
-    if (!email?.trim() || !password?.trim()) {
-      throw new ValidationError("Email and password are required");
-    }
 
     // Find user by email
     const user = await prisma.user
@@ -183,10 +170,7 @@ export const signIn = async (credentials: {
 
     return { accessToken, refreshToken, user: safeUser };
   } catch (error) {
-    if (
-      error instanceof ValidationError ||
-      error instanceof AuthenticationError
-    ) {
+    if (error instanceof AuthenticationError) {
       throw error;
     }
     throw new Error(
@@ -253,7 +237,7 @@ export const refreshAccessToken = async (token: string) => {
       throw error;
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new AuthenticationError("Invalid token");
+      throw new AuthenticationError("Invalid refresh token");
     }
     throw new Error(
       `Token refresh failed: ${
