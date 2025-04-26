@@ -62,7 +62,7 @@ export async function authenticateToken(
  *
  * @throws 403 Forbidden - When user doesn't have required role
  */
-export function checkRole(requiredRole: string) {
+export function checkRole(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.accessToken;
 
@@ -78,9 +78,11 @@ export function checkRole(requiredRole: string) {
         return res.status(403).json({ error: "No role information found" });
       }
 
-      if (role !== requiredRole) {
+      if (!allowedRoles.includes(role)) {
         return res.status(403).json({
-          error: `Required role: ${requiredRole}, User role: ${role}`,
+          error: `Required role: ${allowedRoles.join(
+            ", "
+          )}, User role: ${role}`,
         });
       }
 
