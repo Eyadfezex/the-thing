@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/auth.config";
 import { prisma } from "../lib/prisma";
+import redis from "../redis";
 
 /**
  * Middleware to authenticate JWT tokens in requests
  *
  * This middleware validates JWT tokens from either:
  * 1. The Authorization header in the format "Bearer <token>"
- * 2. A cookie named "token" as fallback
+ * 2. A cookie named "accessToken" as fallback
  *
  * @param req - Express request object
  * @param res - Express response object
@@ -32,7 +33,8 @@ export async function authenticateToken(
   const token = req.cookies.accessToken;
 
   if (!token) {
-    return res.status(401).json({ error: "No token provided" });
+    res.status(401).json({ error: "No token provided" });
+    return;
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET!) as any;
@@ -44,13 +46,14 @@ export async function authenticateToken(
     });
 
     if (!user) {
-      return res.status(401).json({ error: "User no longer exists" });
+      res.status(401).json({ error: "User no longer exists" });
+      return;
     }
 
     (req as any).user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
+    res.status(401).json({ error: "Invalid token" });
   }
 }
 
@@ -67,7 +70,8 @@ export function checkRole(allowedRoles: string[]) {
     const token = req.cookies.accessToken;
 
     if (!token) {
-      return res.status(403).json({ error: "No token provided" });
+      res.status(403).json({ error: "No token provided" });
+      return;
     }
 
     try {
@@ -75,20 +79,70 @@ export function checkRole(allowedRoles: string[]) {
       const role = decoded.role;
 
       if (!role) {
-        return res.status(403).json({ error: "No role information found" });
+        res.status(403).json({ error: "No role information found" });
+        return;
       }
 
       if (!allowedRoles.includes(role)) {
-        return res.status(403).json({
+        res.status(403).json({
           error: `Required role: ${allowedRoles.join(
             ", "
           )}, User role: ${role}`,
         });
+        return;
       }
 
       next();
     } catch (err) {
-      return res.status(403).json({ error: "Invalid token" });
+      res.status(403).json({ error: "Invalid token" });
     }
   };
 }
+
+/**
+ * Middleware to check if a JWT token has been blacklisted
+ *
+ * This middleware checks if an access token has been explicitly invalidated
+ * by checking against a Redis blacklist store.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ *
+ * @returns void
+ *
+ * @throws 401 Unauthorized - When no token is provided
+ * @throws 401 Unauthorized - When token is found in blacklist
+ * @throws 500 Internal Server Error - On Redis errors
+ *
+ * On successful validation:
+ * - Request continues to next middleware/handler if token is not blacklisted
+ */
+export const checkBlacklist = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Assuming you stored the token inside a cookie called 'accessToken'
+    const accessToken = req.cookies.accessToken;
+
+    if (!accessToken) {
+      res.status(401).json({ message: "Unauthorized: No token provided" });
+      return;
+    }
+
+    // Check if token is blacklisted
+    const isBlacklisted = await redis.get(`bl_${accessToken}`);
+
+    if (isBlacklisted) {
+      res.status(401).json({ message: "Unauthorized: Token is blacklisted" });
+      return;
+    }
+
+    next(); // Token is good, go ahead
+  } catch (error) {
+    console.error("Error checking token blacklist:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
