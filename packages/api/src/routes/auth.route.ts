@@ -7,6 +7,7 @@ import {
 } from "../controllers/auth.controller";
 import { validate } from "../middleware/validate";
 import { createUserSchema, loginSchema } from "../schemas/auth.schema";
+import { checkBlacklist } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -134,6 +135,14 @@ router.post("/register", validate(createUserSchema), registerController);
  *                   example: Successfully logged out
  *       401:
  *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid token
  */
 router.post("/logout", logoutController);
 
@@ -142,9 +151,11 @@ router.post("/logout", logoutController);
  * /api/auth/refresh:
  *   post:
  *     summary: Refresh access token
- *     description: Get a new access token using a valid refresh token
+ *     description: Get a new access token using a valid refresh token and set it in cookies
  *     tags:
  *       - Auth
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -159,15 +170,21 @@ router.post("/logout", logoutController);
  *                 description: The refresh token previously issued
  *     responses:
  *       200:
- *         description: New access token
+ *         description: New access token set in cookies
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 accessToken:
+ *                 message:
  *                   type: string
- *                   description: New JWT access token
+ *                   description: Success message
+ *                   example: Access token refreshed successfully
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               description: HTTP-only cookie containing the new access token
  *       401:
  *         description: Invalid or expired refresh token
  *         content:
@@ -179,6 +196,6 @@ router.post("/logout", logoutController);
  *                   type: string
  *                   example: Invalid refresh token
  */
-router.post("/refresh", refreshTokenController);
+router.post("/refresh", checkBlacklist, refreshTokenController);
 
 export default router;

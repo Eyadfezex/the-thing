@@ -6,12 +6,13 @@ import {
   JWT_REFRESH_EXPIRES_IN,
   JWT_SECRET,
 } from "../config/auth.config";
+import { PrismaClientKnownRequestError } from "../../generated/prisma/runtime/library";
 
 /**
  * Custom error class for handling authentication-related errors
  * Used to distinguish authentication failures from other types of errors
  */
-class AuthenticationError extends Error {
+export class AuthenticationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "AuthenticationError";
@@ -38,19 +39,15 @@ export const registerUser = async (userData: {
   try {
     const { name, email, password } = userData;
 
-    // Check if a user with the provided email or username already exists
+    // Check if a user with the provided email already exists
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, { name }],
+        OR: [{ email }],
       },
     });
 
     if (existingUser) {
-      throw new AuthenticationError(
-        existingUser.email === email
-          ? "Email already registered"
-          : "Username already taken"
-      );
+      throw new AuthenticationError("Email already registered");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -64,24 +61,27 @@ export const registerUser = async (userData: {
         },
       })
       .catch((error) => {
+        // Handle specific Prisma unique constraint violation
+        if (
+          error instanceof PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          throw new AuthenticationError("Email already registered");
+        }
         throw new Error(`Database error: ${error.message}`);
       });
 
-    // Generate new refresh token with longer expiry
+    // Generate tokens
     const refreshToken = jwt.sign(
       { userId: newUser.id, tokenType: "refresh" },
       JWT_SECRET,
-      {
-        expiresIn: JWT_REFRESH_EXPIRES_IN, // Refresh token valid for 7 days
-      }
+      { expiresIn: JWT_REFRESH_EXPIRES_IN }
     );
 
     const accessToken = jwt.sign(
       { userId: newUser.id, role: newUser.role },
       JWT_SECRET,
-      {
-        expiresIn: JWT_EXPIRES_IN,
-      }
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     const safeUser = {
