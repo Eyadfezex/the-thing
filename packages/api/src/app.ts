@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import swaggerJSDoc from "swagger-jsdoc";
 import chatRouter from "./routes/chat.route";
 import authRouter from "./routes/auth.route";
+import userRouter from "./routes/user.route";
 import { swaggerOptions } from "./config/swagger.config";
 import { AppError } from "./utils/handleError";
 export const prisma = new PrismaClient();
@@ -26,6 +27,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // --- Routes ---
 app.use("/api", chatRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
 // --- Health Check ---
 /**
  * @swagger
