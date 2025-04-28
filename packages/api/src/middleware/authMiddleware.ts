@@ -67,15 +67,15 @@ export async function authenticateToken(
  */
 export function checkRole(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies.accessToken;
+    const accessToken = req.cookies.accessToken;
 
-    if (!token) {
+    if (!accessToken) {
       res.status(403).json({ error: "No token provided" });
       return;
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET!) as any;
+      const decoded = jwt.verify(accessToken, JWT_SECRET!) as any;
       const role = decoded.role;
 
       if (!role) {
