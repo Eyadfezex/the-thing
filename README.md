@@ -1,6 +1,6 @@
 # The Thing
 
-A modern full-stack monorepo project featuring a robust TypeScript/Node.js API and a performant Next.js client application. Built with enterprise-grade tooling using Lerna for monorepo management and pnpm for efficient package handling. The backend leverages Prisma ORM with PostgreSQL for reliable data persistence.
+The Thing is an intelligent AI chatbot designed to understand, assist, and adapt. Powered by advanced language models, it integrates seamlessly with custom APIs and vector search to deliver fast, context-aware responses. Whether answering questions, handling tasks, or connecting with external systems, The Thing is built for versatility, performance, and real-world utility.
 
 ## 🏗 Monorepo Structure
 
