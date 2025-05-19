@@ -1,6 +1,6 @@
 # The Thing
 
-A modern full-stack monorepo project featuring a robust TypeScript/Node.js API and a performant Next.js client application. Built with enterprise-grade tooling using **Lerna** for monorepo orchestration and **pnpm** for efficient package management. The backend uses **Prisma** ORM with **PostgreSQL**, while the frontend leverages **React 19** with **Next.js 15**, styled using **Tailwind CSS**.
+The Thing is an intelligent AI chatbot designed to understand, assist, and adapt. Powered by advanced language models, it integrates seamlessly with custom APIs and vector search to deliver fast, context-aware responses. Whether answering questions, handling tasks, or connecting with external systems, The Thing is built for versatility, performance, and real-world utility.
 
 ---
 
